@@ -11,6 +11,21 @@ const { typeDefs, resolvers } = require('./schemas');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// use ApolloServer constructor to declare server
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+});
+
+// new instance of apollo server with graphql schema
+const startApolloServer = async () => {
+  await server.start();
+
+  app.use('/graphql', expressMiddleware(server, {
+    context: authMiddleware
+  }));
+}
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -24,3 +39,5 @@ app.use(routes);
 db.once('open', () => {
   app.listen(PORT, () => console.log(`🌍 Now listening on localhost:${PORT}`));
 });
+
+startApolloServer();
