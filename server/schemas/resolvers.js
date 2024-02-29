@@ -15,6 +15,7 @@ const resolvers = {
     },
 
     Mutation: {
+        // mutation to login a user. finds one user by email --> if user is found, check password --> if password is correct, create a token and return the token and the user
         login: async (parent, { email, password }) => {
             const user = await User.findOne({ email });
             if (!user) {
@@ -27,12 +28,48 @@ const resolvers = {
             const token = signToken(user);
             return { token, user }
         },
+        // mutation to create a new user (signup), returns a signed token and the new user
         addUser: async (parent, { username, email, password }) => {
             const user = await User.create({ username, email, password });
             const token = signToken(user);
             return { token, user };
         },
-
+        // mutation to save a book (subdocument) to a User -- uses context to check if the user is logged in
+        saveBook: async (parent, { bookId, authors, description, image, link, title }, context) => {
+            if (context.user) {
+                return User.findOneAndUpdate(
+                    {
+                        _id: context.user._id
+                    },
+                    {
+                        $addToSet: { savedBooks: { bookId, authors, description, image, link, title } },
+                    },
+                    {
+                        new: true,
+                    }
+                );
+            }
+            throw AuthenticationError
+        },
+        // mutation to remove a book (subdocument) from a User's savedBooks array 
+        removeBook: async (parent, { bookId, authors, description, image, link, title }, context) => {
+            if (context.user) {
+                return User.findOneAndUpdate(
+                    {
+                        _id: context.user._id
+                    },
+                    {
+                        $pull: {
+                            savedBooks: { bookId, authors, description, image, link, title }
+                        }
+                    },
+                    { 
+                        new: true,
+                    }
+                );
+            }
+            throw AuthenticationError;
+        },
     },
 };
 
